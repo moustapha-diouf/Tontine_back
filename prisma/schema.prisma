@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  country   String?
+  fullName  String
+  pinHash   String? // optional if we need OTP later
+  createdAt DateTime @default(now())
+  wallet    Wallet?
+}
+
+model Wallet {
+  id              String @id @default(cuid())
+  userId          String @unique
+  currency        String @default("XOF")
+  // store cents to avoid float issues
+  balanceCfaCents Int    @default(0)
+  user            User   @relation(fields: [userId], references: [id])
+}
+
+model Transfer {
+  id             String   @id @default(cuid())
+  fromUserId     String
+  toUserId       String
+  amountCfaCents Int
+  status         String // pending|committed|canceled
+  createdAt      DateTime @default(now())
+  commitAt       DateTime
+  // (indexes you may add later)
+}
+
+model Tontine {
+  id                  String                @id @default(cuid())
+  name                String
+  amountPerCycleCents Int
+  frequency           String // daily|weekly|monthly
+  durationCycles      Int
+  maxMembers          Int
+  status              String                @default("open")
+  createdAt           DateTime              @default(now())
+  members             TontineMember[]
+  contributions       TontineContribution[]
+}
+
+model TontineMember {
+  id          String   @id @default(cuid())
+  tontineId   String
+  userId      String
+  depositHeld Int      @default(0)
+  joinedAt    DateTime @default(now())
+  Tontine     Tontine  @relation(fields: [tontineId], references: [id])
+
+  @@unique([tontineId, userId])
+}
+
+model TontineContribution {
+  id             String   @id @default(cuid())
+  tontineId      String
+  userId         String
+  cycle          Int
+  amountCfaCents Int
+  ts             DateTime @default(now())
+  Tontine        Tontine  @relation(fields: [tontineId], references: [id])
+
+  @@index([tontineId, cycle])
+}

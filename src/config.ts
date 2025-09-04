@@ -1,4 +1,3 @@
-// src/config.ts
 import { createConfig } from "express-zod-api";
 
 
